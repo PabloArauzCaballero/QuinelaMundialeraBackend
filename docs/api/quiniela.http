@@ -1,0 +1,45 @@
+### Health
+GET http://localhost:3000/api/v1/health
+
+### Register
+POST http://localhost:3000/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "name": "Usuario Demo",
+  "email": "usuario@example.test",
+  "password": "Password123!"
+}
+
+### Login
+POST http://localhost:3000/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "usuario@example.test",
+  "password": "Password123!"
+}
+
+### Crear grupo
+POST http://localhost:3000/api/v1/groups
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Amigos Mundialistas"
+}
+
+### Listar partidos
+GET http://localhost:3000/api/v1/matches?status=scheduled
+Authorization: Bearer {{token}}
+
+### Crear pronóstico
+POST http://localhost:3000/api/v1/predictions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "matchId": "{{matchId}}",
+  "predictedHomeScore": 2,
+  "predictedAwayScore": 1
+}

@@ -1,0 +1,57 @@
+{
+  "name": "quiniela-mundial-2026-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend profesional para Quiniela Mundial 2026 con NestJS, Sequelize, PostgreSQL, Zod, JWT y Swagger.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "build": "nest build",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint \"{src,scripts}/**/*.ts\" --max-warnings=0",
+    "test": "tsx --test \"src/**/*.spec.ts\"",
+    "smoke": "tsx scripts/smoke/pure-rules.smoke.ts",
+    "smoke:http": "tsx scripts/smoke/http.smoke.ts",
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:seed": "sequelize-cli db:seed:all",
+    "db:undo": "sequelize-cli db:migrate:undo:all"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/schedule": "^6.0.0",
+    "@nestjs/sequelize": "^11.0.0",
+    "@nestjs/swagger": "^11.0.0",
+    "axios": "^1.7.9",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.7",
+    "pg": "^8.13.1",
+    "pg-hstore": "^2.3.4",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "sequelize": "^6.37.5",
+    "sequelize-typescript": "^2.1.6",
+    "uuid": "^11.0.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.18.1",
+    "@typescript-eslint/parser": "^8.18.1",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "sequelize-cli": "^6.6.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  }
+}
