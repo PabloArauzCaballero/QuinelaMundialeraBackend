@@ -10,8 +10,8 @@ const envSchema = z.object({
   DATABASE_NAME: z.string().default('quiniela_mundial_2026'),
   DATABASE_USER: z.string().default('postgres'),
   DATABASE_PASSWORD: z.string().default('postgres'),
-  DATABASE_SSL: z.coerce.boolean().default(false),
-  DATABASE_LOGGING: z.coerce.boolean().default(false),
+  DATABASE_SSL: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false),
+  DATABASE_LOGGING: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET debe tener al menos 16 caracteres'),
   JWT_EXPIRES_IN: z.string().default('2h'),
   ADMIN_EMAIL: z.string().email().default('admin@example.test'),
@@ -19,7 +19,7 @@ const envSchema = z.object({
   SPORTSDB_API_KEY: z.string().default('3'),
   SPORTSDB_BASE_URL: z.string().url().default('https://www.thesportsdb.com/api/v1/json'),
   SPORTSDB_LEAGUE_NAME: z.string().default('FIFA World Cup'),
-  SYNC_ENABLED: z.coerce.boolean().default(false)
+  SYNC_ENABLED: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false)
 });
 
 export type Env = z.infer<typeof envSchema>;

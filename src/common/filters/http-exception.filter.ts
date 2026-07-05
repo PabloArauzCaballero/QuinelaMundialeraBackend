@@ -22,6 +22,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<RequestWithId>();
 
     const payload = this.toPayload(exception, request.requestId);
+    
+    // Loguear el error en la consola del servidor para poder diagnosticarlo
+    if (payload.statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
+      console.error(`[Unhandled Exception] RequestID: ${payload.requestId}`, exception);
+    }
+
     response.status(payload.statusCode).json({
       requestId: payload.requestId,
       error: {
