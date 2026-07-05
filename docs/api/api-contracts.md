@@ -39,6 +39,8 @@ Todos los endpoints usan el prefijo global:
 |---|---|---|---|
 | GET | `/matches` | JWT | Calendario con filtros |
 | GET | `/matches/:matchId` | JWT | Detalle de partido, equipos y estadio |
+| GET | `/teams` | JWT | Listar todos los equipos registrados |
+| GET | `/stadiums` | JWT | Listar todos los estadios registrados |
 | POST | `/admin/matches` | JWT + admin | Registrar partido |
 | PATCH | `/admin/matches/:matchId` | JWT + admin | Modificar información base sin resultado oficial |
 

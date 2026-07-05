@@ -43,6 +43,29 @@ export class MatchesService {
     return this.matches.upcoming(limit).then((items) => items.map(mapMatch));
   }
 
+  async listTeams() {
+    const teams = await this.matches.findAllTeams();
+    return teams.map((team) => ({
+      id: team.id,
+      name: team.name,
+      shortName: team.shortName,
+      fifaCode: team.fifaCode,
+      flagUrl: team.flagUrl
+    }));
+  }
+
+  async listStadiums() {
+    const stadiums = await this.matches.findAllStadiums();
+    return stadiums.map((stadium) => ({
+      id: stadium.id,
+      name: stadium.name,
+      city: stadium.city,
+      country: stadium.country,
+      latitude: stadium.latitude,
+      longitude: stadium.longitude
+    }));
+  }
+
   private async assertValidReferences(input: Pick<CreateMatchInput, 'homeTeamId' | 'awayTeamId' | 'stadiumId'>): Promise<void> {
     if (input.homeTeamId === input.awayTeamId) {
       throw badRequest(ErrorCode.VALIDATION_ERROR, 'Los equipos no pueden ser iguales.');

@@ -30,6 +30,14 @@ export class MatchRepository {
     return this.stadiums.findByPk(stadiumId);
   }
 
+  findAllTeams(): Promise<TeamModel[]> {
+    return this.teams.findAll({ order: [['name', 'ASC']] });
+  }
+
+  findAllStadiums(): Promise<StadiumModel[]> {
+    return this.stadiums.findAll({ order: [['name', 'ASC']] });
+  }
+
   list(query: ListMatchesQuery): Promise<MatchModel[]> {
     const where: WhereOptions = {};
     if (query.phase) Object.assign(where, { phase: query.phase });

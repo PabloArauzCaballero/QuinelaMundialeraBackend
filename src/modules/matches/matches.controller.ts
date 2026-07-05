@@ -58,3 +58,29 @@ export class AdminMatchesController {
     return this.matches.updateAdmin(user.userId, params.matchId, body, req.requestId);
   }
 }
+
+@ApiTags('Equipos')
+@ApiBearerAuth()
+@Controller('teams')
+export class TeamsController {
+  constructor(private readonly matches: MatchesService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Listar todos los equipos registrados' })
+  list() {
+    return this.matches.listTeams();
+  }
+}
+
+@ApiTags('Estadios')
+@ApiBearerAuth()
+@Controller('stadiums')
+export class StadiumsController {
+  constructor(private readonly matches: MatchesService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Listar todos los estadios registrados' })
+  list() {
+    return this.matches.listStadiums();
+  }
+}
