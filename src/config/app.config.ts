@@ -15,7 +15,7 @@ export const appConfigProvider = {
   inject: [ConfigService],
   useFactory: (config: ConfigService<Env, true>): AppConfig => ({
     name: config.get('APP_NAME', { infer: true }),
-    port: config.get('APP_PORT', { infer: true }),
+    port: config.get('PORT', { infer: true }),
     isProduction: config.get('NODE_ENV', { infer: true }) === 'production',
     corsOrigins: config
       .get('APP_CORS_ORIGIN', { infer: true })

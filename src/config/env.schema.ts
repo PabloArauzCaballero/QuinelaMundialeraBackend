@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  APP_PORT: z.coerce.number().int().positive().default(3000),
+  PORT: z.coerce.number().int().positive().default(3000),
   APP_NAME: z.string().default('Quiniela Mundial 2026 API'),
   APP_CORS_ORIGIN: z.string().default('http://localhost:5173'),
   DATABASE_HOST: z.string().default('localhost'),
