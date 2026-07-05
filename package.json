@@ -4,11 +4,11 @@
   "private": true,
   "description": "Backend profesional para Quiniela Mundial 2026 con NestJS, Sequelize, PostgreSQL, Zod, JWT y Swagger.",
   "license": "UNLICENSED",
-  "scripts": {
+    "scripts": {
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
     "start:dev": "nest start --watch",
-    "build": "nest build",
+    "build": "nest build && node -e \"require('fs').existsSync('dist/main.js') || (console.error('ERROR: dist/main.js no fue generado'), process.exit(1))\"",
     "type-check": "tsc --noEmit",
     "lint": "eslint \"{src,scripts}/**/*.ts\" --max-warnings=0",
     "test": "tsx --test \"src/**/*.spec.ts\"",
