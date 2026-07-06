@@ -17,6 +17,7 @@ const envSchema = z.object({
   DATABASE_LOGGING: booleanFromEnv.default(false),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET debe tener al menos 16 caracteres'),
   JWT_EXPIRES_IN: z.string().default('2h'),
+<<<<<<< HEAD
   SEED_DEMO_USERS: booleanFromEnv.default(true),
   CREATE_INITIAL_ADMIN: booleanFromEnv.default(false),
   ADMIN_NAME: z.string().default('Administrador'),
@@ -36,6 +37,15 @@ const envSchema = z.object({
   SPORTSDB_TIMEOUT_MS: z.coerce.number().int().positive().default(12000),
   SPORTSDB_CACHE_TTL_SECONDS: z.coerce.number().int().nonnegative().default(300),
   SYNC_ENABLED: booleanFromEnv.default(false)
+=======
+  ADMIN_EMAIL: z.string().email().default('admin@example.test'),
+  ADMIN_PASSWORD: z.string().min(10).default('ChangeMe123!'),
+  SPORTSDB_API_KEY: z.string().default('3'),
+  SPORTSDB_EVENTS_KEY: z.string().default('123'),
+  SPORTSDB_BASE_URL: z.string().url().default('https://www.thesportsdb.com/api/v1/json'),
+  SPORTSDB_LEAGUE_ID: z.string().default('4429'),
+  SYNC_ENABLED: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false)
+>>>>>>> 2778dc2869c23886b5d04a08592132e31018b8b7
 });
 
 export type Env = z.infer<typeof envSchema>;

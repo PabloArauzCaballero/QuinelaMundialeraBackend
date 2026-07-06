@@ -148,9 +148,33 @@ export class SyncService {
   }
 
   private mapScore(event: SportsDbEvent): { homeScore: number | null; awayScore: number | null; status: string } | null {
+<<<<<<< HEAD
     const homeScore = parseNullableInt(event.intHomeScore);
     const awayScore = parseNullableInt(event.intAwayScore);
     if (homeScore === null || awayScore === null) return null;
     return { homeScore, awayScore, status: mapStatus(event, normalizeStartDate(event)) };
+=======
+    const rawStatus = (event.strStatus || '').trim().toUpperCase();
+    const isPostponed = event.strPostponed === 'yes';
+
+    let status: string;
+    if (rawStatus === 'FT') {
+      status = 'finished';
+    } else if (rawStatus === 'NS' && !isPostponed) {
+      status = 'scheduled';
+    } else if (isPostponed) {
+      status = 'postponed';
+    } else {
+      status = 'live';
+    }
+
+    // Parse scores: vienen como string ("2", "0") o null si no se jugó
+    if (event.intHomeScore === null || event.intAwayScore === null) return null;
+    const homeScore = Number(event.intHomeScore);
+    const awayScore = Number(event.intAwayScore);
+    if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore)) return null;
+
+    return { homeScore, awayScore, status };
+>>>>>>> 2778dc2869c23886b5d04a08592132e31018b8b7
   }
 }
