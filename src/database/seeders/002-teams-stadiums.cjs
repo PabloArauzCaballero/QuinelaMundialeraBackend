@@ -1,11 +1,7 @@
 'use strict';
 
 module.exports = {
-<<<<<<< HEAD
-  async up() {
-    // Intencionalmente vacío: equipos y sedes reales se importan desde TheSportsDB o se crean por endpoints admin.
-    // No se cargan datos mock/demo en producción.
-=======
+
   async up(queryInterface) {
     const now = new Date();
 
@@ -80,7 +76,6 @@ module.exports = {
       { name: "BMO Field", city: "Toronto", country: "Canada", latitude: 43.6332, longitude: -79.4186, created_at: now, updated_at: now },
       { name: "BC Place", city: "Vancouver", country: "Canada", latitude: 49.2766, longitude: -123.112, created_at: now, updated_at: now }
     ], { ignoreDuplicates: true });
->>>>>>> 2778dc2869c23886b5d04a08592132e31018b8b7
   },
 
   async down() {

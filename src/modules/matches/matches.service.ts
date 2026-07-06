@@ -65,8 +65,10 @@ export class MatchesService {
       name: stadium.name,
       city: stadium.city,
       country: stadium.country,
-      latitude: stadium.latitude,
-      longitude: stadium.longitude
+      // Postgres/Sequelize serializa columnas DECIMAL como string; se castea a
+      // number para que el frontend (Leaflet) reciba coordenadas usables.
+      latitude: stadium.latitude !== null ? Number(stadium.latitude) : null,
+      longitude: stadium.longitude !== null ? Number(stadium.longitude) : null
     }));
   }
 

@@ -26,7 +26,17 @@ export function mapMatch(match: MatchModel) {
       ? { id: match.awayTeam.id, externalId: match.awayTeam.externalId, source: match.awayTeam.source, name: match.awayTeam.name, shortName: match.awayTeam.shortName, fifaCode: match.awayTeam.fifaCode, flagUrl: match.awayTeam.flagUrl }
       : { id: match.awayTeamId },
     stadium: match.stadium
-      ? { id: match.stadium.id, externalId: match.stadium.externalId, source: match.stadium.source, name: match.stadium.name, city: match.stadium.city, country: match.stadium.country, latitude: match.stadium.latitude, longitude: match.stadium.longitude }
+      ? {
+          id: match.stadium.id,
+          externalId: match.stadium.externalId,
+          source: match.stadium.source,
+          name: match.stadium.name,
+          city: match.stadium.city,
+          country: match.stadium.country,
+          // Postgres/Sequelize serializa DECIMAL como string; se castea a number.
+          latitude: match.stadium.latitude !== null ? Number(match.stadium.latitude) : null,
+          longitude: match.stadium.longitude !== null ? Number(match.stadium.longitude) : null
+        }
       : match.stadiumId ? { id: match.stadiumId } : null,
     lastSyncedAt: match.lastSyncedAt,
     createdAt: match.createdAt,

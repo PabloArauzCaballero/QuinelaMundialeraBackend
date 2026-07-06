@@ -82,7 +82,7 @@ export class SyncService {
       ? await this.client.getNextLeagueEvents(input.leagueId)
       : input.mode === 'past'
         ? await this.client.getPastLeagueEvents(input.leagueId)
-        : await this.client.getSeasonEvents({ leagueId: input.leagueId, season: input.season as string });
+        : await this.getFullSeasonEvents(input.leagueId, input.season as string);
 
     const result = await this.upsertExternalEvents(events);
     const run = await this.syncRuns.createRun({
@@ -96,6 +96,51 @@ export class SyncService {
     });
 
     return { runId: run.id, ...result };
+  }
+
+  // TheSportsDB (plan gratuito) recorta eventsseason.php a 15 resultados.
+  // eventsround.php no tiene ese límite, así que agregamos ronda por ronda.
+  // Además, la llave (octavos en adelante) se define partido a partido a medida
+  // que terminan los grupos: eventsround.php puede devolver null para esas rondas
+  // aunque el partido ya exista, así que también combinamos eventsnextleague.php
+  // y eventspastleague.php (que sí reflejan la llave en vivo) para no perder partidos.
+  private async getFullSeasonEvents(leagueId: string, season: string): Promise<SportsDbEvent[]> {
+    const maxRounds = 20;
+    const collected = new Map<string, SportsDbEvent>();
+
+    for (let round = 1; round <= maxRounds; round += 1) {
+      const events = await this.client.getRoundEvents({ leagueId, round, season });
+      for (const event of events) {
+        if (!event.idEvent) continue;
+        // Rondas 1-3 son la fase de grupos (round robin de 4 equipos). De ahí en
+        // adelante, TheSportsDB numera la ronda de eliminación directa por
+        // cantidad de llaves (16, 8, 4, 2, 1) en vez de texto ("Round of 32"...).
+        const knockoutLabel = round > 3 ? describeWorldCupKnockoutRound(String(round)) : null;
+        collected.set(event.idEvent, knockoutLabel ? { ...event, strRound: knockoutLabel } : event);
+      }
+    }
+
+    const [nextEvents, pastEvents] = await Promise.all([
+      this.client.getNextLeagueEvents(leagueId),
+      this.client.getPastLeagueEvents(leagueId)
+    ]);
+    for (const event of [...nextEvents, ...pastEvents]) {
+      if (!event.idEvent) continue;
+      // Estos partidos de llave no estaban en el barrido por ronda (eventsround.php
+      // devuelve null para esas rondas aunque el partido ya exista). Su strRound
+      // llega numérico ("16", "8", "4"...) sin la etiqueta de fase; se la agregamos
+      // acá para que el mapeador de fases (mapPhase) la reconozca por texto, sin
+      // tocar la lógica genérica que también usan otras ligas.
+      if (!collected.has(event.idEvent)) {
+        collected.set(event.idEvent, { ...event, strRound: describeWorldCupKnockoutRound(event.strRound) ?? event.strRound });
+      }
+    }
+
+    if (collected.size === 0) {
+      return this.client.getSeasonEvents({ leagueId, season });
+    }
+
+    return [...collected.values()];
   }
 
   async importWorldCupEvents(input: ImportWorldCupEventsInput) {
@@ -153,4 +198,19 @@ export class SyncService {
     if (homeScore === null || awayScore === null) return null;
     return { homeScore, awayScore, status: mapStatus(event, normalizeStartDate(event)) };
   }
+}
+
+// eventsnextleague.php/eventspastleague.php del Mundial 2026 devuelven strRound
+// numérico = cantidad de partidos de esa ronda de eliminación directa (16 llaves,
+// 8, 4, 2, 1), sin texto. Solo se usa para partidos que ya sabemos que son de
+// llave (no vinieron del barrido de rondas de grupos 1-3).
+function describeWorldCupKnockoutRound(strRound: string | null | undefined): string | null {
+  const roundNumber = Number(strRound);
+  if (!Number.isFinite(roundNumber)) return null;
+  if (roundNumber === 16) return 'Round of 32';
+  if (roundNumber === 8) return 'Round of 16';
+  if (roundNumber === 4) return 'Quarterfinal';
+  if (roundNumber === 2) return 'Semifinal';
+  if (roundNumber === 1) return 'Final';
+  return null;
 }

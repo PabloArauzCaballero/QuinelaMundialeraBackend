@@ -1,15 +1,7 @@
 'use strict';
 
 module.exports = {
-<<<<<<< HEAD
-  async up() {
-    // Intencionalmente vacío: partidos reales se importan desde TheSportsDB.
-    // Prohibido cargar fixtures demo o estáticos en este proyecto.
-  },
 
-  async down() {
-    // Sin datos creados por este seeder.
-=======
   async up(queryInterface, Sequelize) {
     // Obtener referencias de equipos y estadios
     const teams = await queryInterface.sequelize.query('SELECT id, fifa_code FROM teams', { type: Sequelize.QueryTypes.SELECT });
@@ -1111,6 +1103,5 @@ module.exports = {
 
   async down(queryInterface) {
     await queryInterface.bulkDelete('matches', null, {});
->>>>>>> 2778dc2869c23886b5d04a08592132e31018b8b7
   }
 };

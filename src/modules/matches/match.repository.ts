@@ -6,6 +6,8 @@ import { TeamModel } from './models/team.model';
 import { MatchModel } from './models/match.model';
 import type { CreateMatchInput, ListMatchesQuery, UpdateMatchInput } from './match.schemas';
 import type { NormalizedExternalMatch } from '../sportsdb/sportsdb.types';
+import { resolveFifaCode } from '../sportsdb/country-fifa-codes';
+import { resolveVenueCoordinates } from '../sportsdb/world-cup-venues';
 
 @Injectable()
 export class MatchRepository {
@@ -35,8 +37,20 @@ export class MatchRepository {
     return this.teams.findOne({ where: { source, externalId } });
   }
 
+  findTeamByName(name: string): Promise<TeamModel | null> {
+    return this.teams.findOne({ where: { name } });
+  }
+
+  findTeamByFifaCode(fifaCode: string): Promise<TeamModel | null> {
+    return this.teams.findOne({ where: { fifaCode } });
+  }
+
   findStadiumBySourceExternalId(source: string, externalId: string): Promise<StadiumModel | null> {
     return this.stadiums.findOne({ where: { source, externalId } });
+  }
+
+  findStadiumByName(name: string): Promise<StadiumModel | null> {
+    return this.stadiums.findOne({ where: { name } });
   }
 
   findAllTeams(): Promise<TeamModel[]> {
@@ -132,40 +146,58 @@ export class MatchRepository {
   }
 
   private async upsertExternalTeam(input: NormalizedExternalMatch['homeTeam']): Promise<TeamModel> {
-    const existing = await this.findTeamBySourceExternalId('thesportsdb', input.externalId as string);
-    const payload = {
+    const fifaCode = resolveFifaCode(input.name) ?? (input.name ? input.name.slice(0, 3).toUpperCase() : null);
+    // TheSportsDB a veces asigna un idTeam distinto o un nombre alterno (p. ej. "South Korea"
+    // vs "Korea Republic") a la misma selección; el fifaCode resuelto es la clave más estable
+    // para no violar la columna única ni duplicar equipos.
+    const existing = (fifaCode ? await this.findTeamByFifaCode(fifaCode) : null)
+      ?? (input.name ? await this.findTeamByName(input.name) : null)
+      ?? (await this.findTeamBySourceExternalId('thesportsdb', input.externalId as string));
+    if (existing) {
+      // No se sobreescribe externalId: TheSportsDB puede reportar un idTeam distinto
+      // para la misma selección entre eventos, y reescribirlo puede chocar con la
+      // restricción única (source, external_id) de otro equipo ya sincronizado.
+      await existing.update({ name: input.name, shortName: input.shortName ?? input.name, fifaCode, flagUrl: input.flagUrl } as any);
+      return existing;
+    }
+    return this.teams.create({
       source: 'thesportsdb',
       externalId: input.externalId,
       name: input.name,
       shortName: input.shortName ?? input.name,
-      fifaCode: `TSDB_${input.externalId}`.slice(0, 12),
+      fifaCode,
       flagUrl: input.flagUrl
-    };
-    if (existing) {
-      await existing.update(payload as any);
-      return existing;
-    }
-    return this.teams.create(payload as any);
+    } as any);
   }
 
   private async upsertExternalStadium(input: NormalizedExternalMatch['stadium']): Promise<StadiumModel | null> {
     if (!input || (!input.externalId && !input.name)) return null;
-    const externalId = input.externalId ?? `name:${input.name}`;
-    const existing = await this.findStadiumBySourceExternalId('thesportsdb', externalId);
-    const payload = {
+    // TheSportsDB no siempre incluye idVenue para el mismo estadio (varía por evento),
+    // así que el nombre es la clave más confiable para no duplicar sedes.
+    const existing = (input.name ? await this.findStadiumByName(input.name) : null)
+      ?? (await this.findStadiumBySourceExternalId('thesportsdb', input.externalId ?? `name:${input.name}`));
+    const coordinates = resolveVenueCoordinates(input.name);
+    if (existing) {
+      // No se sobreescribe externalId: un idVenue distinto para el mismo nombre de
+      // sede puede chocar con la restricción única (source, external_id) de otra fila.
+      await existing.update({
+        name: input.name,
+        city: input.city,
+        country: input.country,
+        latitude: coordinates?.latitude ?? existing.latitude ?? null,
+        longitude: coordinates?.longitude ?? existing.longitude ?? null
+      } as any);
+      return existing;
+    }
+    return this.stadiums.create({
       source: 'thesportsdb',
-      externalId,
+      externalId: input.externalId ?? `name:${input.name}`,
       name: input.name,
       city: input.city,
       country: input.country,
-      latitude: null,
-      longitude: null
-    };
-    if (existing) {
-      await existing.update(payload as any);
-      return existing;
-    }
-    return this.stadiums.create(payload as any);
+      latitude: coordinates?.latitude ?? null,
+      longitude: coordinates?.longitude ?? null
+    } as any);
   }
 }
 

@@ -39,6 +39,7 @@ interface SmokeConfig {
   importLeagueId?: string;
   importSeason: string;
   worldCupLeagueId?: string;
+  printResponses: boolean;
 }
 
 interface HttpResult<T = Json> {
@@ -109,21 +110,22 @@ function loadConfig(): SmokeConfig {
     adminPassword: resolveAdminPassword(),
     importLeagueId: process.env.SMOKE_IMPORT_LEAGUE_ID,
     importSeason: process.env.SMOKE_IMPORT_SEASON ?? process.env.SPORTSDB_WORLD_CUP_SEASON ?? '2026',
-    worldCupLeagueId: process.env.SMOKE_WORLD_CUP_LEAGUE_ID ?? process.env.SPORTSDB_WORLD_CUP_LEAGUE_ID
+    worldCupLeagueId: process.env.SMOKE_WORLD_CUP_LEAGUE_ID ?? process.env.SPORTSDB_WORLD_CUP_LEAGUE_ID,
+    printResponses: process.env.SMOKE_PRINT_RESPONSES === 'true'
   };
 }
 
 
 function resolveAdminEmail(): string | undefined {
   if (process.env.SMOKE_ADMIN_EMAIL) return process.env.SMOKE_ADMIN_EMAIL;
-  if (process.env.ADMIN_EMAIL) return process.env.ADMIN_EMAIL;
-  return process.env.DEMO_ADMIN_EMAIL ?? 'demo.admin@quiniela.test';
+  if (process.env.CREATE_DEMO_USERS === 'true') return process.env.DEMO_ADMIN_EMAIL ?? 'demo.admin@quiniela.test';
+  return process.env.ADMIN_EMAIL;
 }
 
 function resolveAdminPassword(): string | undefined {
   if (process.env.SMOKE_ADMIN_PASSWORD) return process.env.SMOKE_ADMIN_PASSWORD;
-  if (process.env.ADMIN_PASSWORD) return process.env.ADMIN_PASSWORD;
-  return process.env.DEMO_ADMIN_PASSWORD ?? 'DemoAdmin123!';
+  if (process.env.CREATE_DEMO_USERS === 'true') return process.env.DEMO_ADMIN_PASSWORD ?? 'DemoAdmin123!';
+  return process.env.ADMIN_PASSWORD;
 }
 
 function parseExternalMode(value: string | undefined): SmokeConfig['externalMode'] {
@@ -171,11 +173,56 @@ async function rawRequest<T = Json>(
     data = text;
   }
 
+  if (config.printResponses || url.includes('/sportsdb/')) {
+    printHttpResponse(init.method ?? 'GET', url, response.status, data, text);
+  }
+
   if (!expectedStatuses.includes(response.status)) {
-    throw new Error(`${init.method ?? 'GET'} ${url} -> ${response.status}. Respuesta: ${text.slice(0, 1000)}`);
+    throw new Error(`${init.method ?? 'GET'} ${url} -> ${response.status}. Respuesta: ${text.slice(0, 2000)}`);
   }
 
   return { status: response.status, ok: response.ok, data: data as T, text, headers: response.headers };
+}
+
+function printHttpResponse(method: string, url: string, status: number, data: unknown, rawText: string): void {
+  const isSportsDb = url.includes('/sportsdb/');
+  const title = isSportsDb ? 'SPORTSDB RESPONSE' : 'HTTP RESPONSE';
+  console.log(`\n--- ${title} --------------------------------------------------`);
+  console.log(`${method} ${url}`);
+  console.log(`Status: ${status}`);
+  console.log(summarizePayload(data, rawText));
+  console.log('--- END RESPONSE -----------------------------------------------\n');
+}
+
+function summarizePayload(data: unknown, rawText: string): string {
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const record = data as Record<string, unknown>;
+    const items = record.items;
+    const filters = record.filters;
+    const source = record.source;
+    const header = [
+      source ? `source=${String(source)}` : undefined,
+      filters !== undefined ? `filters=${safeJson(filters, 500)}` : undefined,
+      Array.isArray(items) ? `items.length=${items.length}` : undefined
+    ].filter(Boolean).join(' | ');
+
+    const sample = Array.isArray(items) && items.length > 0
+      ? `\nitems[0]=${safeJson(items[0], 1500)}`
+      : '';
+
+    return `${header || 'object'}${sample}\nfull=${safeJson(data, 3000)}`;
+  }
+
+  return rawText.length > 3000 ? `${rawText.slice(0, 3000)}... [truncado]` : rawText;
+}
+
+function safeJson(value: unknown, maxLength: number): string {
+  try {
+    const text = JSON.stringify(value, null, 2);
+    return text.length > maxLength ? `${text.slice(0, maxLength)}... [truncado]` : text;
+  } catch {
+    return String(value);
+  }
 }
 
 async function api<T = Json>(path: string, init: RequestInit & { expectedStatuses?: number[] } = {}): Promise<HttpResult<T>> {
@@ -288,6 +335,7 @@ async function main(): Promise<void> {
   console.log(`API_BASE_URL: ${config.apiBaseUrl}`);
   console.log(`Health origin: ${config.originUrl}`);
   console.log(`External mode: ${config.externalMode}`);
+  console.log(`Print responses: ${config.printResponses ? 'all' : 'SportsDB only'}`);
   console.log(`Admin email: ${mask(config.adminEmail)}`);
 
   let owner!: AuthResponse;

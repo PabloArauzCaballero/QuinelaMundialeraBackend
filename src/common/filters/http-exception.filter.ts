@@ -102,7 +102,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
   }
 
   private safeSequelizeDetails(exception: SequelizeValidationError): Array<{ path?: string; message: string }> {
-    return exception.errors.map((error) => ({ path: error.path ?? undefined, message: error.message }));
+    const fromErrors = exception.errors?.map((error) => ({ path: error.path ?? undefined, message: error.message })) ?? [];
+    if (fromErrors.length > 0) return fromErrors;
+    return [{ path: undefined, message: exception.message }];
   }
 
   private safeForeignKeyDetails(exception: ForeignKeyConstraintError): { table?: string; fields?: string[] } {

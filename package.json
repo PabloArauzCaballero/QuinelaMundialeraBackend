@@ -19,7 +19,8 @@
     "db:undo": "sequelize-cli db:migrate:undo:all",
     "smoke:rules": "tsx scripts/smoke/pure-rules.smoke.ts",
     "db:deploy": "sequelize-cli db:migrate && sequelize-cli db:seed:all",
-    "db:seed:undo": "sequelize-cli db:seed:undo:all"
+    "db:seed:undo": "sequelize-cli db:seed:undo:all",
+    "smoke:sportsdb": "tsx scripts/smoke/sportsdb-debug.smoke.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

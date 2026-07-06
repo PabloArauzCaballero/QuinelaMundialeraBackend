@@ -8,6 +8,15 @@ import { normalizeExternalMatch, normalizeLeague, normalizeSport } from './sport
 
 export type EventsMode = 'season' | 'next' | 'past' | 'day';
 
+interface ListLeagueEventsQuery {
+  leagueId?: string;
+  season?: string;
+  mode?: EventsMode;
+  date?: string;
+  sport?: string;
+  leagueName?: string;
+}
+
 @Injectable()
 export class SportsDbService {
   constructor(private readonly config: ConfigService<Env, true>, private readonly client: SportsDbClient) {}
@@ -21,7 +30,7 @@ export class SportsDbService {
   }
 
   async listLeagues(query: { sport?: string; country?: string }) {
-    const leagues = query.sport || query.country ? await this.client.searchLeagues(query) : await this.client.getAllLeagues();
+    const leagues = await this.client.searchLeagues(query);
     return {
       source: 'thesportsdb',
       filters: query,
@@ -29,22 +38,26 @@ export class SportsDbService {
     };
   }
 
-  async listLeagueEvents(query: { leagueId: string; season?: string; mode?: EventsMode; date?: string }) {
-    const mode = query.mode ?? (query.season ? 'season' : 'next');
+  async listLeagueEvents(query: ListLeagueEventsQuery) {
+    const mode = query.mode ?? (query.leagueId ? (query.season ? 'season' : 'next') : 'day');
     const events = await this.loadEvents({ ...query, mode });
     return {
       source: 'thesportsdb',
       mode,
-      leagueId: query.leagueId,
+      leagueId: query.leagueId ?? null,
       season: query.season ?? null,
       date: query.date ?? null,
+      sport: query.sport ?? null,
+      leagueName: query.leagueName ?? null,
       items: events.map(normalizeExternalMatch).filter(Boolean)
     };
   }
 
   async listWorldCupEvents(query: { leagueId?: string; season?: string; mode?: EventsMode; date?: string }) {
     const leagueId = query.leagueId ?? this.config.get('SPORTSDB_WORLD_CUP_LEAGUE_ID', { infer: true });
-    if (!leagueId && query.mode !== 'day') {
+    const mode = query.mode ?? (leagueId ? 'season' : 'day');
+
+    if (!leagueId && mode !== 'day') {
       throw new AppError(
         ErrorCode.SPORTSDB_NOT_CONFIGURED,
         'Falta SPORTSDB_WORLD_CUP_LEAGUE_ID o query leagueId. No se inventa el ID del Mundial.',
@@ -52,29 +65,46 @@ export class SportsDbService {
       );
     }
 
-    const mode = query.mode ?? 'season';
+    const season = query.season ?? this.config.get('SPORTSDB_WORLD_CUP_SEASON', { infer: true });
     const events = mode === 'day'
-      ? await this.client.getDailyEvents(query.date ?? new Date().toISOString().slice(0, 10), this.config.get('SPORTSDB_LEAGUE_NAME', { infer: true }))
-      : await this.loadEvents({ leagueId: leagueId as string, season: query.season ?? this.config.get('SPORTSDB_WORLD_CUP_SEASON', { infer: true }), mode });
+      ? await this.client.getDailyEvents(query.date ?? new Date().toISOString().slice(0, 10), {
+          sport: 'Soccer',
+          leagueId: leagueId ?? undefined,
+          leagueName: leagueId ? undefined : this.config.get('SPORTSDB_LEAGUE_NAME', { infer: true })
+        })
+      : await this.loadEvents({ leagueId: leagueId as string, season, mode });
 
     return {
       source: 'thesportsdb',
       mode,
       leagueId: leagueId ?? null,
-      season: query.season ?? this.config.get('SPORTSDB_WORLD_CUP_SEASON', { infer: true }) ?? null,
+      season: season ?? null,
+      date: query.date ?? null,
       items: events.map(normalizeExternalMatch).filter(Boolean)
     };
   }
 
-  private loadEvents(query: { leagueId: string; season?: string; mode: EventsMode; date?: string }) {
+  private loadEvents(query: { leagueId?: string; season?: string; mode: EventsMode; date?: string; sport?: string; leagueName?: string }) {
+    if (query.mode === 'day') {
+      return this.client.getDailyEvents(query.date ?? new Date().toISOString().slice(0, 10), {
+        sport: query.sport,
+        leagueId: query.leagueId,
+        leagueName: query.leagueName
+      });
+    }
+
+    if (!query.leagueId) {
+      throw new AppError(ErrorCode.VALIDATION_ERROR, 'leagueId es requerido cuando mode es season, next o past.', 400);
+    }
+
     if (query.mode === 'season') {
       if (!query.season) {
         throw new AppError(ErrorCode.VALIDATION_ERROR, 'season es requerido cuando mode=season.', 400);
       }
       return this.client.getSeasonEvents({ leagueId: query.leagueId, season: query.season });
     }
+
     if (query.mode === 'past') return this.client.getPastLeagueEvents(query.leagueId);
-    if (query.mode === 'day') return this.client.getDailyEvents(query.date ?? new Date().toISOString().slice(0, 10));
     return this.client.getNextLeagueEvents(query.leagueId);
   }
 }
