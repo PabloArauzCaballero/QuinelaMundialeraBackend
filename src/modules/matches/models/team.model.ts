@@ -5,6 +5,12 @@ export class TeamModel extends Model {
   @Column({ type: DataType.UUID, defaultValue: DataType.UUIDV4, primaryKey: true })
   declare id: string;
 
+  @Column({ type: DataType.STRING(40), allowNull: false, defaultValue: 'manual' })
+  declare source: string;
+
+  @Column({ type: DataType.STRING(80), allowNull: true, field: 'external_id' })
+  declare externalId: string | null;
+
   @Column({ type: DataType.STRING(90), allowNull: false })
   declare name: string;
 

@@ -7,6 +7,10 @@ import { mapMatch } from './match.mapper';
 import type { CreateMatchInput, ListMatchesQuery, UpdateMatchInput } from './match.schemas';
 import type { MatchModel } from './models/match.model';
 
+type MatchReferencesInput = Pick<CreateMatchInput, 'homeTeamId' | 'awayTeamId'> & {
+  stadiumId: string | null;
+};
+
 @Injectable()
 export class MatchesService {
   constructor(private readonly matches: MatchRepository, private readonly audit: AuditService) {}
@@ -66,18 +70,18 @@ export class MatchesService {
     }));
   }
 
-  private async assertValidReferences(input: Pick<CreateMatchInput, 'homeTeamId' | 'awayTeamId' | 'stadiumId'>): Promise<void> {
+  private async assertValidReferences(input: MatchReferencesInput): Promise<void> {
     if (input.homeTeamId === input.awayTeamId) {
       throw badRequest(ErrorCode.VALIDATION_ERROR, 'Los equipos no pueden ser iguales.');
     }
     const [homeTeam, awayTeam, stadium] = await Promise.all([
       this.matches.findTeamById(input.homeTeamId),
       this.matches.findTeamById(input.awayTeamId),
-      this.matches.findStadiumById(input.stadiumId)
+      input.stadiumId ? this.matches.findStadiumById(input.stadiumId) : Promise.resolve(null)
     ]);
     if (!homeTeam) throw notFound('Equipo local no encontrado.');
     if (!awayTeam) throw notFound('Equipo visitante no encontrado.');
-    if (!stadium) throw notFound('Estadio no encontrado.');
+    if (input.stadiumId && !stadium) throw notFound('Estadio no encontrado.');
   }
 
   private async assertValidUpdate(match: MatchModel, input: UpdateMatchInput): Promise<void> {

@@ -18,6 +18,7 @@ import { PredictionsModule } from './modules/predictions/predictions.module';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { SyncModule } from './modules/sync/sync.module';
+import { SportsDbModule } from './modules/sportsdb/sportsdb.module';
 import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
@@ -35,6 +36,7 @@ import { AuditModule } from './modules/audit/audit.module';
     PredictionsModule,
     LeaderboardModule,
     DashboardModule,
+    SportsDbModule,
     SyncModule
   ],
   providers: [

@@ -4,7 +4,7 @@
   "private": true,
   "description": "Backend profesional para Quiniela Mundial 2026 con NestJS, Sequelize, PostgreSQL, Zod, JWT y Swagger.",
   "license": "UNLICENSED",
-    "scripts": {
+  "scripts": {
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
     "start:dev": "nest start --watch",
@@ -12,11 +12,14 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint \"{src,scripts}/**/*.ts\" --max-warnings=0",
     "test": "tsx --test \"src/**/*.spec.ts\"",
-    "smoke": "tsx scripts/smoke/pure-rules.smoke.ts",
+    "smoke": "yarn smoke:http",
     "smoke:http": "tsx scripts/smoke/http.smoke.ts",
     "db:migrate": "sequelize-cli db:migrate",
     "db:seed": "sequelize-cli db:seed:all",
-    "db:undo": "sequelize-cli db:migrate:undo:all"
+    "db:undo": "sequelize-cli db:migrate:undo:all",
+    "smoke:rules": "tsx scripts/smoke/pure-rules.smoke.ts",
+    "db:deploy": "sequelize-cli db:migrate && sequelize-cli db:seed:all",
+    "db:seed:undo": "sequelize-cli db:seed:undo:all"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -55,7 +58,7 @@
     "typescript": "^5.7.2"
   },
   "engines": {
-    "node": ">=20.19.0 <21",
+    "node": ">=20.19.0 <21 || >=25.0.0 <26",
     "yarn": "1.x"
   }
 }

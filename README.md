@@ -124,3 +124,37 @@ Ver:
 | `docs/architecture/long-term-review.md` | Segunda revisión y riesgos de largo plazo |
 | `docs/pending/pending-items.md` | Pendientes explícitos |
 | `IMPLEMENTATION_REPORT.md` | Reporte de implementación y revisión |
+
+## Smoke HTTP end-to-end
+
+El smoke principal ahora prueba endpoints reales de arriba a abajo. No usa mocks ni services internos.
+
+```bash
+yarn smoke:http
+```
+
+Contra Render:
+
+```bash
+API_BASE_URL=https://tu-backend.onrender.com/api/v1 yarn smoke:http
+```
+
+Para endpoints admin define:
+
+```bash
+SMOKE_ADMIN_EMAIL=admin@tu-dominio.com
+SMOKE_ADMIN_PASSWORD=tu_password_admin
+```
+
+Para probar importación real desde TheSportsDB define además:
+
+```bash
+SMOKE_IMPORT_LEAGUE_ID=ID_REAL_DE_LIGA
+SMOKE_IMPORT_SEASON=2026
+```
+
+La guía completa está en:
+
+```txt
+docs/api/smoke-http-e2e.md
+```

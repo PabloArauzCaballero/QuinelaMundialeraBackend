@@ -4,6 +4,12 @@ export function mapMatch(match: MatchModel) {
   return {
     id: match.id,
     externalId: match.externalId,
+    source: match.source,
+    league: {
+      externalId: match.leagueExternalId,
+      name: match.leagueName,
+      season: match.season
+    },
     phase: match.phase,
     status: match.status,
     startsAt: match.startsAt,
@@ -12,14 +18,14 @@ export function mapMatch(match: MatchModel) {
       away: match.awayScore
     },
     homeTeam: match.homeTeam
-      ? { id: match.homeTeam.id, name: match.homeTeam.name, shortName: match.homeTeam.shortName, fifaCode: match.homeTeam.fifaCode, flagUrl: match.homeTeam.flagUrl }
+      ? { id: match.homeTeam.id, externalId: match.homeTeam.externalId, source: match.homeTeam.source, name: match.homeTeam.name, shortName: match.homeTeam.shortName, fifaCode: match.homeTeam.fifaCode, flagUrl: match.homeTeam.flagUrl }
       : { id: match.homeTeamId },
     awayTeam: match.awayTeam
-      ? { id: match.awayTeam.id, name: match.awayTeam.name, shortName: match.awayTeam.shortName, fifaCode: match.awayTeam.fifaCode, flagUrl: match.awayTeam.flagUrl }
+      ? { id: match.awayTeam.id, externalId: match.awayTeam.externalId, source: match.awayTeam.source, name: match.awayTeam.name, shortName: match.awayTeam.shortName, fifaCode: match.awayTeam.fifaCode, flagUrl: match.awayTeam.flagUrl }
       : { id: match.awayTeamId },
     stadium: match.stadium
-      ? { id: match.stadium.id, name: match.stadium.name, city: match.stadium.city, country: match.stadium.country, latitude: match.stadium.latitude, longitude: match.stadium.longitude }
-      : { id: match.stadiumId },
+      ? { id: match.stadium.id, externalId: match.stadium.externalId, source: match.stadium.source, name: match.stadium.name, city: match.stadium.city, country: match.stadium.country, latitude: match.stadium.latitude, longitude: match.stadium.longitude }
+      : match.stadiumId ? { id: match.stadiumId } : null,
     lastSyncedAt: match.lastSyncedAt,
     createdAt: match.createdAt,
     updatedAt: match.updatedAt

@@ -25,8 +25,14 @@ export class UserRepository {
   }
 
   async assignRole(userId: string, roleName: 'user' | 'admin'): Promise<void> {
-    const role = await this.roles.findOne({ where: { name: roleName } });
-    if (!role) throw new Error(`Role no encontrado: ${roleName}`);
+    // Los roles base son catálogo obligatorio del sistema, no datos demo.
+    // Se usa findOrCreate como defensa operativa si una base fue migrada antes
+    // de incorporar la migración 006 o si alguien olvidó ejecutar seeders.
+    const [role] = await this.roles.findOrCreate({
+      where: { name: roleName },
+      defaults: { name: roleName } as any
+    });
+
     await this.userRoles.findOrCreate({ where: { userId, roleId: role.id } as any });
   }
 

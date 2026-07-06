@@ -59,3 +59,38 @@ yarn build
 - Empaquetado ZIP real.
 
 No se ejecutó `yarn install`, `lint`, `type-check`, `test` ni `build` en este entorno porque no se descargaron dependencias externas.
+
+## Corrección adicional — Smoke HTTP end-to-end real
+
+Se reemplazó el smoke principal para que pruebe solicitudes HTTP reales contra la API levantada.
+
+Cambios:
+
+- `yarn smoke` ahora ejecuta `yarn smoke:http`.
+- `yarn smoke:rules` queda disponible para reglas puras.
+- `scripts/smoke/http.smoke.ts` ahora cubre auth, usuarios, grupos, miembros, dashboard, leaderboard, partidos, equipos, estadios, pronósticos cuando existan partidos futuros, TheSportsDB real y endpoints admin cuando existan credenciales.
+- Se agregó `docs/api/smoke-http-e2e.md` con variables, modo estricto y ejemplos para local/Render.
+
+El smoke no crea partidos falsos. Si no hay partidos reales importados, el flujo de pronósticos se marca como `SKIP`, salvo que `SMOKE_STRICT=true` esté activo.
+
+## Corrección E2E smoke: roles base obligatorios
+
+Se detectó que una base local migrada pero sin seeders podía romper `POST /api/v1/auth/register` con:
+
+```txt
+Role no encontrado: user
+```
+
+Corrección aplicada:
+
+- Nueva migración `006-ensure-required-roles.cjs` inserta de forma idempotente los roles base `user` y `admin`.
+- `UserRepository.assignRole()` ahora usa `findOrCreate` como defensa operativa.
+- Esto no introduce mocks: `user` y `admin` son catálogo obligatorio para autorización.
+
+Para bases ya existentes, ejecutar:
+
+```bash
+yarn db:migrate
+```
+
+Si la tabla `roles` quedó vacía en local, con esa migración basta. No es necesario cargar seeders de partidos/equipos.

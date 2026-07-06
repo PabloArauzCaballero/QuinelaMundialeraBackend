@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+const optionalString = (schema: z.ZodString) => z.preprocess((val) => val === '' ? undefined : val, schema.optional());
+const booleanFromEnv = z.preprocess((val) => val === 'true' || val === true, z.boolean());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -10,16 +13,29 @@ const envSchema = z.object({
   DATABASE_NAME: z.string().default('quiniela_mundial_2026'),
   DATABASE_USER: z.string().default('postgres'),
   DATABASE_PASSWORD: z.string().default('postgres'),
-  DATABASE_SSL: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false),
-  DATABASE_LOGGING: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false),
+  DATABASE_SSL: booleanFromEnv.default(false),
+  DATABASE_LOGGING: booleanFromEnv.default(false),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET debe tener al menos 16 caracteres'),
   JWT_EXPIRES_IN: z.string().default('2h'),
-  ADMIN_EMAIL: z.string().email().default('admin@example.test'),
-  ADMIN_PASSWORD: z.string().min(10).default('ChangeMe123!'),
-  SPORTSDB_API_KEY: z.string().default('3'),
+  SEED_DEMO_USERS: booleanFromEnv.default(true),
+  CREATE_INITIAL_ADMIN: booleanFromEnv.default(false),
+  ADMIN_NAME: z.string().default('Administrador'),
+  ADMIN_EMAIL: optionalString(z.string().email()),
+  ADMIN_PASSWORD: optionalString(z.string().min(10)),
+  DEMO_ADMIN_NAME: z.string().default('Demo Admin'),
+  DEMO_ADMIN_EMAIL: z.string().email().default('demo.admin@quiniela.test'),
+  DEMO_ADMIN_PASSWORD: z.string().min(10).default('DemoAdmin123!'),
+  DEMO_USER_NAME: z.string().default('Demo User'),
+  DEMO_USER_EMAIL: z.string().email().default('demo.user@quiniela.test'),
+  DEMO_USER_PASSWORD: z.string().min(10).default('DemoUser123!'),
+  SPORTSDB_API_KEY: z.string().default('123'),
   SPORTSDB_BASE_URL: z.string().url().default('https://www.thesportsdb.com/api/v1/json'),
   SPORTSDB_LEAGUE_NAME: z.string().default('FIFA World Cup'),
-  SYNC_ENABLED: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false)
+  SPORTSDB_WORLD_CUP_LEAGUE_ID: optionalString(z.string().trim().min(1)),
+  SPORTSDB_WORLD_CUP_SEASON: z.string().default('2026'),
+  SPORTSDB_TIMEOUT_MS: z.coerce.number().int().positive().default(12000),
+  SPORTSDB_CACHE_TTL_SECONDS: z.coerce.number().int().nonnegative().default(300),
+  SYNC_ENABLED: booleanFromEnv.default(false)
 });
 
 export type Env = z.infer<typeof envSchema>;

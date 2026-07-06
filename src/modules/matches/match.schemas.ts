@@ -8,7 +8,10 @@ export const listMatchesQuerySchema = z.object({
   status: matchStatusSchema.optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   teamId: z.string().uuid().optional(),
-  stadiumId: z.string().uuid().optional()
+  stadiumId: z.string().uuid().optional(),
+  source: z.enum(['manual', 'thesportsdb']).optional(),
+  leagueExternalId: z.string().trim().min(1).max(80).optional(),
+  season: z.string().trim().min(4).max(20).optional()
 });
 
 export const createMatchSchema = z.object({
@@ -26,6 +29,9 @@ export const updateMatchSchema = z.object({
   homeTeamId: z.string().uuid().optional(),
   awayTeamId: z.string().uuid().optional(),
   stadiumId: z.string().uuid().optional(),
+  source: z.enum(['manual', 'thesportsdb']).optional(),
+  leagueExternalId: z.string().trim().min(1).max(80).optional(),
+  season: z.string().trim().min(4).max(20).optional(),
   phase: matchPhaseSchema.optional(),
   status: matchStatusSchema.optional(),
   startsAt: z.coerce.date().optional()
