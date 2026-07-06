@@ -74,11 +74,26 @@ export class SyncService {
   }
 
   private mapScore(event: SportsDbEvent): { homeScore: number | null; awayScore: number | null; status: string } | null {
-    const homeScore = event.intHomeScore === null ? null : Number(event.intHomeScore);
-    const awayScore = event.intAwayScore === null ? null : Number(event.intAwayScore);
+    const rawStatus = (event.strStatus || '').trim().toUpperCase();
+    const isPostponed = event.strPostponed === 'yes';
+
+    let status: string;
+    if (rawStatus === 'FT') {
+      status = 'finished';
+    } else if (rawStatus === 'NS' && !isPostponed) {
+      status = 'scheduled';
+    } else if (isPostponed) {
+      status = 'postponed';
+    } else {
+      status = 'live';
+    }
+
+    // Parse scores: vienen como string ("2", "0") o null si no se jugó
+    if (event.intHomeScore === null || event.intAwayScore === null) return null;
+    const homeScore = Number(event.intHomeScore);
+    const awayScore = Number(event.intAwayScore);
     if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore)) return null;
-    const rawStatus = `${event.strStatus ?? ''} ${event.strProgress ?? ''}`.toLowerCase();
-    const status = rawStatus.includes('final') || rawStatus.includes('match finished') ? 'finished' : 'live';
+
     return { homeScore, awayScore, status };
   }
 }

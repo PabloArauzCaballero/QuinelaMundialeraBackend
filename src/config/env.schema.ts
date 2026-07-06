@@ -17,8 +17,9 @@ const envSchema = z.object({
   ADMIN_EMAIL: z.string().email().default('admin@example.test'),
   ADMIN_PASSWORD: z.string().min(10).default('ChangeMe123!'),
   SPORTSDB_API_KEY: z.string().default('3'),
+  SPORTSDB_EVENTS_KEY: z.string().default('123'),
   SPORTSDB_BASE_URL: z.string().url().default('https://www.thesportsdb.com/api/v1/json'),
-  SPORTSDB_LEAGUE_NAME: z.string().default('FIFA World Cup'),
+  SPORTSDB_LEAGUE_ID: z.string().default('4429'),
   SYNC_ENABLED: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false)
 });
 

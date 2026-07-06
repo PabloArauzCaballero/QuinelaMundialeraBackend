@@ -7,10 +7,19 @@ import { ErrorCode } from '../../common/errors/error-code.enum';
 
 export interface SportsDbEvent {
   idEvent: string;
+  strHomeTeam: string;
+  strAwayTeam: string;
   intHomeScore: string | null;
   intAwayScore: string | null;
-  strStatus?: string | null;
-  strProgress?: string | null;
+  strStatus: string | null;
+  strPostponed?: string;
+  idVenue: string;
+  strVenue: string;
+  strCountry: string;
+  strCity?: string;
+  dateEvent: string;
+  strTime: string;
+  intRound: string;
 }
 
 @Injectable()
@@ -18,14 +27,13 @@ export class SportsDbClient {
   constructor(private readonly config: ConfigService<Env, true>) {}
 
   async getDailyEvents(date: string): Promise<SportsDbEvent[]> {
-    // PENDIENTE_ATLAS: validar campos reales de TheSportsDB para Mundial 2026 y límites de API gratuita.
-    const apiKey = this.config.get('SPORTSDB_API_KEY', { infer: true });
+    const apiKey = this.config.get('SPORTSDB_EVENTS_KEY', { infer: true });
     const baseUrl = this.config.get('SPORTSDB_BASE_URL', { infer: true }).replace(/\/$/, '');
-    const leagueName = this.config.get('SPORTSDB_LEAGUE_NAME', { infer: true });
-    if (!apiKey) throw new AppError(ErrorCode.SPORTSDB_NOT_CONFIGURED, 'SPORTSDB_API_KEY no configurado.', 503);
+    const leagueId = this.config.get('SPORTSDB_LEAGUE_ID', { infer: true });
+    if (!apiKey) throw new AppError(ErrorCode.SPORTSDB_NOT_CONFIGURED, 'SPORTSDB_EVENTS_KEY no configurado.', 503);
 
     const response = await axios.get<{ events?: SportsDbEvent[] }>(`${baseUrl}/${apiKey}/eventsday.php`, {
-      params: { d: date, l: leagueName },
+      params: { d: date, l: leagueId },
       timeout: 12000
     });
 
