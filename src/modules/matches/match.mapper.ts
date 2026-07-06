@@ -7,6 +7,8 @@ export function mapMatch(match: MatchModel) {
     phase: match.phase,
     status: match.status,
     startsAt: match.startsAt,
+    homeScore: match.homeScore,
+    awayScore: match.awayScore,
     score: {
       home: match.homeScore,
       away: match.awayScore
