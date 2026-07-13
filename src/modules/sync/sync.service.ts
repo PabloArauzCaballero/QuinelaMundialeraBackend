@@ -75,6 +75,36 @@ export class SyncService {
     }
   }
 
+  // Sincronización incremental al iniciar la aplicación. Solo actualiza
+  // marcadores del día (syncToday) y crea/actualiza partidos futuros o nuevos
+  // desde eventsnextleague.php. Por diseño NO vuelve a pedir los partidos ya
+  // consolidados: syncToday solo mira el día de hoy y getNextLeagueEvents solo
+  // devuelve encuentros posteriores a la fecha actual. Máximo 2 llamadas a la API.
+  // No interrumpe el arranque del servidor si la API falla o no está configurada.
+  async syncOnBoot(): Promise<void> {
+    if (!this.config.get('SYNC_ENABLED', { infer: true }) || !this.config.get('SYNC_ON_BOOT', { infer: true })) {
+      this.logger.log('Sync en arranque deshabilitado (SYNC_ENABLED/SYNC_ON_BOOT).');
+      return;
+    }
+
+    try {
+      const todayResult = await this.syncToday();
+      this.logger.log(`Sync arranque (hoy): ${JSON.stringify(todayResult)}`);
+
+      const leagueId = this.config.get('SPORTSDB_WORLD_CUP_LEAGUE_ID', { infer: true });
+      if (!leagueId) {
+        this.logger.warn('Sync arranque: falta SPORTSDB_WORLD_CUP_LEAGUE_ID; no se consultan partidos futuros.');
+        return;
+      }
+
+      const nextEvents = await this.client.getNextLeagueEvents(leagueId);
+      const result = await this.upsertExternalEvents(nextEvents);
+      this.logger.log(`Sync arranque (próximos): creados=${result.created} actualizados=${result.updated} omitidos=${result.skipped}`);
+    } catch (error) {
+      this.logger.error(`Sync en arranque falló (no se interrumpe el servidor): ${(error as Error).message}`);
+    }
+  }
+
 
   async importLeagueEvents(input: ImportLeagueEventsInput) {
     const startedAt = new Date();

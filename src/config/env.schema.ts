@@ -36,7 +36,8 @@ const envSchema = z.object({
   SPORTSDB_WORLD_CUP_SEASON: z.string().default('2026'),
   SPORTSDB_TIMEOUT_MS: z.coerce.number().int().positive().default(12000),
   SPORTSDB_CACHE_TTL_SECONDS: z.coerce.number().int().nonnegative().default(300),
-  SYNC_ENABLED: booleanFromEnv.default(false)
+  SYNC_ENABLED: booleanFromEnv.default(false),
+  SYNC_ON_BOOT: booleanFromEnv.default(false)
 });
 
 export type Env = z.infer<typeof envSchema>;
