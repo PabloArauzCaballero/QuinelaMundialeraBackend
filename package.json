@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "start": "node dist/main.js",
-    "start:prod": "node dist/main.js",
+    "start:prod": "sequelize-cli db:migrate && node dist/main.js",
     "start:dev": "nest start --watch",
     "build": "nest build && node -e \"require('fs').existsSync('dist/main.js') || (console.error('ERROR: dist/main.js no fue generado'), process.exit(1))\"",
     "type-check": "tsc --noEmit",
