@@ -87,6 +87,16 @@ export class MatchRepository {
     });
   }
 
+  // Partidos con fuente externa que ya deberían haber terminado (startsAt en
+  // el pasado) pero siguen "scheduled". Pasa cuando el sync no corrió el día
+  // real del partido (SYNC_ENABLED apagado, error puntual, ronda no
+  // detectada a tiempo, etc.) y syncToday() solo revisa "hoy".
+  findStaleScheduledExternalMatches(before: Date): Promise<MatchModel[]> {
+    return this.matches.findAll({
+      where: { status: 'scheduled', source: 'thesportsdb', externalId: { [Op.ne]: null }, startsAt: { [Op.lt]: before } }
+    });
+  }
+
   todaysMatches(): Promise<MatchModel[]> {
     const now = new Date();
     const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));

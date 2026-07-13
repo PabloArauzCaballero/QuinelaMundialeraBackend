@@ -81,6 +81,23 @@ export class SyncService {
         updatedMatchIds.push(match.id);
       }
 
+      // Partidos que ya deberían haber terminado (startsAt en el pasado) pero
+      // siguen "scheduled": pasa cuando el sync no corrió el día real del
+      // partido (SYNC_ENABLED estuvo apagado, la ronda no se detectó a
+      // tiempo, etc.). Como el chequeo de arriba solo mira "hoy", estos se
+      // revalidan uno por uno con lookupevent.php para no quedar pegados.
+      const stale = await this.matches.findStaleScheduledExternalMatches(startedAt);
+      for (const match of stale) {
+        checked += 1;
+        if (!match.externalId) continue;
+        const event = await this.client.lookupEvent(match.externalId);
+        if (!event) continue;
+        const score = this.mapScore(event);
+        if (!score) continue;
+        await this.matches.updateOfficialScore(match, { ...score, lastSyncedAt: new Date() });
+        updatedMatchIds.push(match.id);
+      }
+
       const uniqueUpdatedMatchIds = [...new Set(updatedMatchIds)];
       const predictionsUpdated = await this.predictions.recalculateForMatches(uniqueUpdatedMatchIds);
       const run = await this.syncRuns.createRun({
