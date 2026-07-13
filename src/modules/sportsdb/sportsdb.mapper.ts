@@ -115,12 +115,15 @@ export function mapStatus(event: SportsDbEvent, startsAtIso?: string | null): No
 
 export function mapPhase(event: SportsDbEvent): NormalizedExternalMatch['phase'] {
   const raw = [event.strRound, event.strEvent, event.strEventAlternate].filter(Boolean).join(' ').toLowerCase();
-  if (raw.includes('final') && !raw.includes('semi') && !raw.includes('third')) return 'final';
+  // Los chequeos más específicos van primero porque "final" es substring de
+  // "quarterfinal" y "semifinal" (p. ej. "Quarterfinal" quedaba mal clasificado
+  // como fase "final" con el orden anterior).
   if (raw.includes('third') || raw.includes('3rd')) return 'third_place';
   if (raw.includes('semi')) return 'semi_final';
   if (raw.includes('quarter')) return 'quarter_final';
   if (raw.includes('round of 16') || raw.includes('last 16')) return 'round_16';
   if (raw.includes('round of 32') || raw.includes('last 32')) return 'round_32';
+  if (raw.includes('final')) return 'final';
   return 'group';
 }
 

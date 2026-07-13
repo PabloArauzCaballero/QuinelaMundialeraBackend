@@ -34,13 +34,39 @@ export class SyncService {
     } catch (error) {
       this.logger.error(`Sync programado falló: ${(error as Error).message}`);
     }
+
+    await this.catchUpWorldCupBracket();
+  }
+
+  // syncToday() solo actualiza el marcador de partidos que YA existen en la
+  // base local (busca por externalId y si no lo encuentra, lo ignora). Nunca
+  // crea partidos nuevos. Eso significa que octavos/cuartos/semifinal/final
+  // nunca aparecerían solos: hay que traerlos con eventsnextleague.php /
+  // eventspastleague.php (que sí reflejan la llave en vivo a medida que
+  // TheSportsDB la va definiendo) para que la final no dependa de un import
+  // manual. Se corre en cada tick del cron junto al sync diario.
+  private async catchUpWorldCupBracket(): Promise<void> {
+    const leagueId = this.config.get('SPORTSDB_WORLD_CUP_LEAGUE_ID', { infer: true });
+    if (!leagueId) return; // No se inventa el ID del Mundial.
+
+    for (const mode of ['next', 'past'] as const) {
+      try {
+        await this.importWorldCupEvents({ leagueId, mode });
+      } catch (error) {
+        this.logger.error(`Catch-up de llave del Mundial (${mode}) falló: ${(error as Error).message}`);
+      }
+    }
   }
 
   async syncToday() {
     const startedAt = new Date();
     const date = toIsoDateOnly(startedAt);
     try {
-      const events = await this.client.getDailyEvents(date, this.config.get('SPORTSDB_LEAGUE_NAME', { infer: true }));
+      // eventsday.php filtra `l` por id numérico de liga, no por nombre
+      // (SPORTSDB_LEAGUE_NAME siempre devolvía "Invalid League ID passed" y 0
+      // eventos, por lo que el sync automático nunca actualizaba nada).
+      const leagueId = this.config.get('SPORTSDB_WORLD_CUP_LEAGUE_ID', { infer: true });
+      const events = await this.client.getDailyEvents(date, { sport: 'Soccer', leagueId: leagueId ?? undefined });
       const updatedMatchIds: string[] = [];
       let checked = 0;
 
@@ -76,7 +102,7 @@ export class SyncService {
   }
 
 
-  async importLeagueEvents(input: ImportLeagueEventsInput) {
+  async importLeagueEvents(input: ImportLeagueEventsInput, transform?: (event: SportsDbEvent) => SportsDbEvent) {
     const startedAt = new Date();
     const events = input.mode === 'next'
       ? await this.client.getNextLeagueEvents(input.leagueId)
@@ -84,7 +110,7 @@ export class SyncService {
         ? await this.client.getPastLeagueEvents(input.leagueId)
         : await this.getFullSeasonEvents(input.leagueId, input.season as string);
 
-    const result = await this.upsertExternalEvents(events);
+    const result = await this.upsertExternalEvents(transform ? events.map(transform) : events);
     const run = await this.syncRuns.createRun({
       provider: 'thesportsdb',
       status: result.skipped > 0 ? 'partial' : 'success',
@@ -127,12 +153,13 @@ export class SyncService {
     for (const event of [...nextEvents, ...pastEvents]) {
       if (!event.idEvent) continue;
       // Estos partidos de llave no estaban en el barrido por ronda (eventsround.php
-      // devuelve null para esas rondas aunque el partido ya exista). Su strRound
-      // llega numérico ("16", "8", "4"...) sin la etiqueta de fase; se la agregamos
-      // acá para que el mapeador de fases (mapPhase) la reconozca por texto, sin
-      // tocar la lógica genérica que también usan otras ligas.
+      // devuelve null para esas rondas aunque el partido ya exista). Se etiquetan
+      // por fecha (ver applyWorldCupKnockoutLabel) en vez de por strRound numérico:
+      // eventsnextleague.php/eventspastleague.php para el Mundial 2026 no siguen el
+      // esquema 16/8/4/2/1 (se vio "125", "150"...) y además ese número podría
+      // coincidir con una jornada real de grupos (round=1,2,3) y etiquetarla mal.
       if (!collected.has(event.idEvent)) {
-        collected.set(event.idEvent, { ...event, strRound: describeWorldCupKnockoutRound(event.strRound) ?? event.strRound });
+        collected.set(event.idEvent, applyWorldCupKnockoutLabel(event));
       }
     }
 
@@ -151,12 +178,21 @@ export class SyncService {
     }
 
     if (input.mode === 'day') {
-      const events = await this.client.getDailyEvents(input.date ?? new Date().toISOString().slice(0, 10), this.config.get('SPORTSDB_LEAGUE_NAME', { infer: true }));
-      const result = await this.upsertExternalEvents(events);
+      const events = await this.client.getDailyEvents(input.date ?? new Date().toISOString().slice(0, 10), {
+        sport: 'Soccer',
+        leagueId: leagueId ?? undefined
+      });
+      const result = await this.upsertExternalEvents(events.map(applyWorldCupKnockoutLabel));
       return { source: 'thesportsdb', mode: 'day', leagueId: leagueId ?? null, ...result };
     }
 
-    return this.importLeagueEvents({ leagueId: leagueId as string, season, mode: input.mode === 'past' ? 'past' : input.mode === 'next' ? 'next' : 'season' });
+    if (input.mode === 'next' || input.mode === 'past') {
+      // eventsnextleague.php/eventspastleague.php no pasan por getFullSeasonEvents,
+      // así que la fase se etiqueta acá con el mismo criterio (ver applyWorldCupKnockoutLabel).
+      return this.importLeagueEvents({ leagueId: leagueId as string, season, mode: input.mode }, applyWorldCupKnockoutLabel);
+    }
+
+    return this.importLeagueEvents({ leagueId: leagueId as string, season, mode: 'season' });
   }
 
   private async upsertExternalEvents(events: SportsDbEvent[]) {
@@ -200,10 +236,11 @@ export class SyncService {
   }
 }
 
-// eventsnextleague.php/eventspastleague.php del Mundial 2026 devuelven strRound
-// numérico = cantidad de partidos de esa ronda de eliminación directa (16 llaves,
-// 8, 4, 2, 1), sin texto. Solo se usa para partidos que ya sabemos que son de
-// llave (no vinieron del barrido de rondas de grupos 1-3).
+// Solo se usa dentro del barrido eventsround.php?r=1..20 de getFullSeasonEvents,
+// donde `round` es el índice de bucle (4..20) y no un dato del evento: ahí sí es
+// seguro asumir el esquema "cantidad de llaves restantes" (16, 8, 4, 2, 1) que
+// TheSportsDB usaba para ese endpoint. No usar con strRound de un evento suelto:
+// round=1 también es la jornada 1 de grupos y se confundiría con la final.
 function describeWorldCupKnockoutRound(strRound: string | null | undefined): string | null {
   const roundNumber = Number(strRound);
   if (!Number.isFinite(roundNumber)) return null;
@@ -213,4 +250,30 @@ function describeWorldCupKnockoutRound(strRound: string | null | undefined): str
   if (roundNumber === 2) return 'Semifinal';
   if (roundNumber === 1) return 'Final';
   return null;
+}
+
+// eventsnextleague.php/eventspastleague.php/eventsday.php del Mundial 2026 no
+// siguen el esquema de arriba (confirmado en producción: cuartos de final
+// llegaron con strRound="125", semifinal con "150") y el número tampoco es
+// confiable por sí solo (podría ser una jornada real de grupos). Por eso estos
+// eventos "sueltos" se etiquetan únicamente por la fecha oficial del cuadro de
+// eliminación del Mundial 2026 (FIFA): si la fecha no cae en ese calendario, se
+// deja el evento sin tocar y mapPhase lo clasifica como fase "group" por defecto.
+function describeWorldCupKnockoutRoundByDate(dateEvent: string | null | undefined): string | null {
+  if (!dateEvent) return null;
+  const date = new Date(`${dateEvent}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  const iso = date.toISOString().slice(0, 10);
+  if (iso >= '2026-07-19') return 'Final';
+  if (iso >= '2026-07-18') return 'Third place';
+  if (iso >= '2026-07-14') return 'Semifinal';
+  if (iso >= '2026-07-09') return 'Quarterfinal';
+  if (iso >= '2026-07-04') return 'Round of 16';
+  if (iso >= '2026-06-28') return 'Round of 32';
+  return null;
+}
+
+function applyWorldCupKnockoutLabel(event: SportsDbEvent): SportsDbEvent {
+  const knockoutLabel = describeWorldCupKnockoutRoundByDate(event.dateEvent);
+  return knockoutLabel ? { ...event, strRound: knockoutLabel } : event;
 }

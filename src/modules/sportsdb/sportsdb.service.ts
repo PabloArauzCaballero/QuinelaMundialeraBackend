@@ -69,8 +69,7 @@ export class SportsDbService {
     const events = mode === 'day'
       ? await this.client.getDailyEvents(query.date ?? new Date().toISOString().slice(0, 10), {
           sport: 'Soccer',
-          leagueId: leagueId ?? undefined,
-          leagueName: leagueId ? undefined : this.config.get('SPORTSDB_LEAGUE_NAME', { infer: true })
+          leagueId: leagueId ?? undefined
         })
       : await this.loadEvents({ leagueId: leagueId as string, season, mode });
 
@@ -86,10 +85,10 @@ export class SportsDbService {
 
   private loadEvents(query: { leagueId?: string; season?: string; mode: EventsMode; date?: string; sport?: string; leagueName?: string }) {
     if (query.mode === 'day') {
+      // leagueName no es un filtro válido para eventsday.php (ver SportsDbClient.getDailyEvents).
       return this.client.getDailyEvents(query.date ?? new Date().toISOString().slice(0, 10), {
         sport: query.sport,
-        leagueId: query.leagueId,
-        leagueName: query.leagueName
+        leagueId: query.leagueId
       });
     }
 

@@ -13,7 +13,6 @@ interface CacheEntry<T> {
 
 interface DailyEventsFilters {
   sport?: string;
-  leagueName?: string;
   leagueId?: string;
 }
 
@@ -88,16 +87,14 @@ export class SportsDbClient {
     return data.events ?? [];
   }
 
-  async getDailyEvents(date: string, filters?: string | DailyEventsFilters): Promise<SportsDbEvent[]> {
+  async getDailyEvents(date: string, filters?: DailyEventsFilters): Promise<SportsDbEvent[]> {
     const query: Record<string, string> = { d: date };
 
-    if (typeof filters === 'string') {
-      if (filters.trim()) query.l = filters.trim();
-    } else if (filters) {
-      if (filters.sport?.trim()) query.s = filters.sport.trim();
-      if (filters.leagueId?.trim()) query.l = filters.leagueId.trim();
-      else if (filters.leagueName?.trim()) query.l = filters.leagueName.trim();
-    }
+    // eventsday.php solo acepta el id numérico de liga en `l`. Un nombre de
+    // liga (p. ej. "FIFA World Cup") hace que TheSportsDB responda
+    // {"events":[],"Message":"Invalid League ID passed"}, así que nunca se envía.
+    if (filters?.sport?.trim()) query.s = filters.sport.trim();
+    if (filters?.leagueId?.trim()) query.l = filters.leagueId.trim();
 
     const data = await this.get<{ events?: SportsDbEvent[] }>('eventsday.php', query);
     return data.events ?? [];
