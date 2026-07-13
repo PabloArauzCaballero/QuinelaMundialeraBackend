@@ -38,6 +38,7 @@ module.exports = {
       { name: "Netherlands", fifa_code: "NED", short_name: "Netherlands", flag_url: null, created_at: now, updated_at: now },
       { name: "New Zealand", fifa_code: "NZL", short_name: "New Zealand", flag_url: null, created_at: now, updated_at: now },
       { name: "Norway", fifa_code: "NOR", short_name: "Norway", flag_url: null, created_at: now, updated_at: now },
+      { name: "Panama", fifa_code: "PAN", short_name: "Panama", flag_url: null, created_at: now, updated_at: now },
       { name: "Paraguay", fifa_code: "PAR", short_name: "Paraguay", flag_url: null, created_at: now, updated_at: now },
       { name: "Portugal", fifa_code: "POR", short_name: "Portugal", flag_url: null, created_at: now, updated_at: now },
       { name: "Qatar", fifa_code: "QAT", short_name: "Qatar", flag_url: null, created_at: now, updated_at: now },
