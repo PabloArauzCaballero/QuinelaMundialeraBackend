@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "start": "node dist/main.js",
-    "start:prod": "sequelize-cli db:migrate && sequelize-cli db:seed --seed 001-roles-admin.cjs && sequelize-cli db:seed --seed 002-teams-stadiums.cjs && node dist/main.js",
+    "start:prod": "sequelize-cli db:migrate && sequelize-cli db:seed --seed 001-roles-admin.cjs && sequelize-cli db:seed --seed 002-teams-stadiums.cjs && sequelize-cli db:seed --seed 003-sample-matches.cjs && node dist/main.js",
     "start:dev": "nest start --watch",
     "build": "nest build && node -e \"require('fs').existsSync('dist/main.js') || (console.error('ERROR: dist/main.js no fue generado'), process.exit(1))\"",
     "type-check": "tsc --noEmit",
