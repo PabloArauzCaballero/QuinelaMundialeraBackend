@@ -87,13 +87,17 @@ export class MatchRepository {
     });
   }
 
-  // Partidos con fuente externa que ya deberían haber terminado (startsAt en
-  // el pasado) pero siguen "scheduled". Pasa cuando el sync no corrió el día
-  // real del partido (SYNC_ENABLED apagado, error puntual, ronda no
-  // detectada a tiempo, etc.) y syncToday() solo revisa "hoy".
+  // Partidos con externalId (reconsultables en TheSportsDB) que ya deberían
+  // haber terminado (startsAt en el pasado) pero siguen "scheduled". Pasa
+  // cuando el sync no corrió el día real del partido (SYNC_ENABLED apagado,
+  // error puntual, ronda no detectada a tiempo, etc.) y syncToday() solo
+  // revisa "hoy". No se filtra por `source`: el seed 003-sample-matches.cjs
+  // inserta partidos reales de TheSportsDB con external_id pero sin setear
+  // `source` (la columna cae en su default 'manual'), así que `source` no es
+  // una señal confiable de si el partido viene de TheSportsDB.
   findStaleScheduledExternalMatches(before: Date): Promise<MatchModel[]> {
     return this.matches.findAll({
-      where: { status: 'scheduled', source: 'thesportsdb', externalId: { [Op.ne]: null }, startsAt: { [Op.lt]: before } }
+      where: { status: 'scheduled', externalId: { [Op.ne]: null }, startsAt: { [Op.lt]: before } }
     });
   }
 
